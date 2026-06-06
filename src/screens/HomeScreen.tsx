@@ -9,10 +9,6 @@ import {
   AlertTriangle,
   Star,
   ChevronDown,
-  Briefcase,
-  MessageCircle,
-  Phone,
-  CheckCircle2,
 } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { ProviderCard } from '../components/cards/ProviderCard';
@@ -28,22 +24,22 @@ import { calculateDistance, sortByDistance } from '../lib/distance';
 import { t } from '../lib/translations';
 import type { Provider } from '../types';
 
-// ─── Inline Banner data (replaces mockData banners) ────────────────────────
+// Rotating promotional banners (visual-only; no mockData import)
 const BANNERS = [
   {
-    title: 'Find Trusted Pros Near You',
-    subtitle: 'Verified workers, on-demand',
-    color: 'from-blue-700 to-indigo-800',
+    title: 'Emergency Services 24/7',
+    subtitle: 'Electrician & Plumber on call',
+    color: 'from-red-500 to-rose-600',
   },
   {
-    title: 'Emergency? We Got You',
-    subtitle: '24/7 services available now',
-    color: 'from-rose-600 to-red-700',
+    title: 'Top Rated Professionals',
+    subtitle: 'Verified experts at your doorstep',
+    color: 'from-blue-600 to-indigo-700',
   },
   {
-    title: 'Top Rated Providers',
-    subtitle: 'Rated by your neighbours',
-    color: 'from-emerald-600 to-teal-700',
+    title: 'Book in Seconds',
+    subtitle: 'Trusted services, instant booking',
+    color: 'from-emerald-500 to-teal-600',
   },
 ];
 
@@ -59,16 +55,16 @@ export const HomeScreen: React.FC = () => {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [currentBanner, setCurrentBanner] = useState(0);
 
-  // ─── Banner auto-rotate ────────────────────────────────────────────────────
+  // Rotate banner
   useEffect(() => {
     const timer = setInterval(
       () => setCurrentBanner((p) => (p + 1) % BANNERS.length),
-      4000,
+      4000
     );
     return () => clearInterval(timer);
   }, []);
 
-  // ─── Fetch providers with caching ─────────────────────────────────────────
+  // Fetch providers with caching
   const fetchProviders = useCallback(
     async (forceRefresh = false) => {
       const cacheKey = location
@@ -91,7 +87,7 @@ export const HomeScreen: React.FC = () => {
         const { data, error: fetchError } = await supabase
           .from('providers')
           .select(
-            'id, user_id, full_name, avatar_url, categories, location_lat, location_lng, location_area, location_city, service_range_km, is_available, is_active, is_featured, is_verified, rating, total_reviews, total_jobs',
+            'id, user_id, full_name, avatar_url, categories, location_lat, location_lng, location_area, location_city, service_range_km, is_available, is_active, is_featured, is_verified, rating, total_reviews, total_jobs'
           )
           .eq('is_active', true)
           .order('is_featured', { ascending: false })
@@ -109,7 +105,7 @@ export const HomeScreen: React.FC = () => {
               location.lat,
               location.lng,
               p.location_lat,
-              p.location_lng,
+              p.location_lng
             ),
           }));
 
@@ -128,7 +124,7 @@ export const HomeScreen: React.FC = () => {
         setLoading(false);
       }
     },
-    [location, language],
+    [location, language]
   );
 
   useEffect(() => {
@@ -144,17 +140,19 @@ export const HomeScreen: React.FC = () => {
     }
   }, [location, locationLoading, permissionDenied, detectLocation]);
 
-  // ─── Memoized provider lists ───────────────────────────────────────────────
-  const nearbyProviders = useMemo(() => sortByDistance(providers).slice(0, 6), [providers]);
+  const nearbyProviders = useMemo(
+    () => sortByDistance(providers).slice(0, 6),
+    [providers]
+  );
 
   const topRatedProviders = useMemo(
     () => [...providers].sort((a, b) => b.rating - a.rating).slice(0, 6),
-    [providers],
+    [providers]
   );
 
   const availableProviders = useMemo(
     () => providers.filter((p) => p.is_available).slice(0, 6),
-    [providers],
+    [providers]
   );
 
   const categoryUsage = useMemo(() => {
@@ -176,86 +174,26 @@ export const HomeScreen: React.FC = () => {
     });
   }, [categories, categoryUsage]);
 
-  // ─── Render helpers ────────────────────────────────────────────────────────
+  // Emergency categories — production schema may include flag; fall back gracefully.
+  const emergencyCategories = useMemo(() => {
+    return sortedCategories
+      .filter((c: any) => c.is_emergency || c.isEmergency)
+      .slice(0, 6);
+  }, [sortedCategories]);
 
-  const renderHeroHeader = () => (
-    <div className="bg-gradient-to-br from-blue-800 to-indigo-900 px-4 pt-5 pb-6 rounded-b-3xl shadow-lg md:rounded-none md:px-8 md:pt-6">
-      {/* Top row */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {/* Avatar initials */}
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            {(user?.full_name || 'U')[0].toUpperCase()}
-          </div>
-          <div>
-            <p className="text-blue-200 text-[10px]">
-              {language === 'ur' ? 'خوش آمدید' : 'Hello'},{' '}
-              {user?.full_name?.split(' ')[0] || 'Guest'} 👋
-            </p>
-            <button
-              onClick={detectLocation}
-              className="flex items-center gap-1 text-white"
-            >
-              <MapPin size={12} className="fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-semibold">
-                {location?.area || location?.city || (language === 'ur' ? 'مقام' : 'Location')}
-              </span>
-              <ChevronDown size={14} className="text-blue-300" />
-            </button>
-          </div>
-        </div>
-
-        <button className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center relative">
-          <Bell size={20} className="text-white" />
-          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-indigo-900" />
-        </button>
-      </div>
-
-      {/* Search bar */}
-      <button
-        onClick={() => navigate('/search')}
-        className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:bg-white/20 transition-colors"
-      >
-        <Search size={18} className="text-blue-200" />
-        <span className="text-sm text-blue-200">
-          {t(language, 'searchPlaceholder') || 'Search for services…'}
-        </span>
-      </button>
-    </div>
-  );
-
-  const renderBanner = () => (
-    <div className="px-4 mt-4 md:px-8">
-      <div
-        className={`bg-gradient-to-r ${BANNERS[currentBanner].color} rounded-2xl p-5 relative overflow-hidden shadow-md`}
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-        <div className="absolute bottom-0 right-10 w-20 h-20 bg-white/5 rounded-full translate-y-6" />
-        <h3 className="text-white font-bold text-lg relative z-10">
-          {BANNERS[currentBanner].title}
-        </h3>
-        <p className="text-white/70 text-sm mt-1 relative z-10">
-          {BANNERS[currentBanner].subtitle}
-        </p>
-        <div className="flex gap-1.5 mt-3 relative z-10">
-          {BANNERS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentBanner(i)}
-              className={`h-1.5 rounded-full transition-all ${
-                i === currentBanner ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const userDisplayName =
+    user?.full_name || (language === 'ur' ? 'مہمان' : 'Guest');
+  const initials = userDisplayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   const renderCategoryGrid = () => {
     if (loadingCategories) {
       return (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 md:gap-4">
           {[...Array(8)].map((_, i) => (
             <CategorySkeleton key={i} />
           ))}
@@ -263,24 +201,26 @@ export const HomeScreen: React.FC = () => {
       );
     }
 
-    const visible = showAllCategories ? sortedCategories : sortedCategories.slice(0, 8);
+    const visible = showAllCategories
+      ? sortedCategories
+      : sortedCategories.slice(0, 8);
 
     return (
       <>
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 md:gap-4">
           {visible.map((category) => (
             <button
               key={category.id}
               onClick={() => navigate(`/providers/${category.id}`)}
-              className="bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5 shadow-sm border border-gray-50 hover:shadow-md hover:border-blue-200 transition-all active:scale-95"
+              className="bg-white rounded-2xl p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 shadow-sm border border-gray-50 hover:shadow-md hover:border-blue-200 transition-all active:scale-95"
             >
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-2xl md:text-3xl"
                 style={{ backgroundColor: `${category.color}20` }}
               >
                 {category.icon}
               </div>
-              <span className="text-[10px] font-semibold text-gray-600 text-center leading-tight line-clamp-2">
+              <span className="text-[10px] md:text-xs font-semibold text-gray-600 text-center leading-tight line-clamp-2">
                 {language === 'ur' ? category.name_ur : category.name_en}
               </span>
             </button>
@@ -288,14 +228,12 @@ export const HomeScreen: React.FC = () => {
         </div>
         {sortedCategories.length > 8 && (
           <div className="mt-4 flex justify-center">
-            <Button variant="outline" size="sm" onClick={() => setShowAllCategories((v) => !v)}>
-              {showAllCategories
-                ? language === 'ur'
-                  ? 'کم دکھائیں'
-                  : 'Show Less'
-                : language === 'ur'
-                  ? 'سب دیکھیں'
-                  : 'View All'}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAllCategories((v) => !v)}
+            >
+              {showAllCategories ? 'Show Less' : 'View All'}
             </Button>
           </div>
         )}
@@ -303,177 +241,76 @@ export const HomeScreen: React.FC = () => {
     );
   };
 
-  // Inline mini provider card using production fields
-  const renderInlineProviderCard = (provider: Provider, compact = false) => {
-    const handleView = () => navigate(`/providers/profile/${provider.id}`);
-    const handleBook = () => navigate(`/booking/${provider.id}`);
-    const handleChat = () => navigate(`/chat/${provider.id}`);
-
-    if (compact) {
+  const renderProviderSection = (
+    title: string,
+    providersList: Provider[],
+    viewAllPath?: string,
+    icon?: React.ReactNode
+  ) => {
+    if (loading) {
       return (
-        <div
-          key={provider.id}
-          onClick={handleView}
-          className="bg-white rounded-2xl p-3 shadow-sm border border-gray-50 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow min-w-[260px]"
-        >
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            {provider.avatar_url ? (
-              <img
-                src={provider.avatar_url}
-                alt={provider.full_name}
-                className="w-11 h-11 rounded-xl object-cover"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-base">
-                {(provider.full_name || '?')[0].toUpperCase()}
-              </div>
-            )}
-            {provider.is_available && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm text-gray-800 truncate">{provider.full_name}</h4>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Star size={10} className="text-yellow-400 fill-yellow-400" />
-              <span className="text-[10px] text-gray-500">
-                {provider.rating?.toFixed(1)} ({provider.total_reviews})
-              </span>
+        <section className="px-4 mt-6 md:px-0 md:mt-8">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="flex items-center gap-2">
+              {icon}
+              <h2 className="text-base md:text-lg font-bold text-gray-800">
+                {title}
+              </h2>
             </div>
-            {location && provider.distance != null && (
-              <div className="flex items-center gap-1 mt-0.5 text-gray-400">
-                <MapPin size={10} />
-                <span className="text-[10px]">{provider.distance.toFixed(1)} km</span>
-              </div>
-            )}
           </div>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {[...Array(3)].map((_, i) => (
+              <ProviderCardSkeleton key={i} />
+            ))}
+          </div>
+        </section>
       );
     }
 
+    if (providersList.length === 0) return null;
+
     return (
-      <div
-        key={provider.id}
-        className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden hover:shadow-md transition-all duration-200"
-      >
-        <div className="p-4">
-          <div className="flex gap-3">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              {provider.avatar_url ? (
-                <img
-                  src={provider.avatar_url}
-                  alt={provider.full_name}
-                  className="w-14 h-14 rounded-xl object-cover"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-xl">
-                  {(provider.full_name || '?')[0].toUpperCase()}
-                </div>
-              )}
-              {provider.is_available && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white" />
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-gray-800 text-sm">{provider.full_name}</h3>
-                    {provider.is_verified && (
-                      <CheckCircle2 size={14} className="text-emerald-500" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-[11px] text-gray-500">
-                      {provider.rating?.toFixed(1)} · {provider.total_reviews} reviews
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    provider.is_available
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {provider.is_available
-                    ? language === 'ur'
-                      ? '● دستیاب'
-                      : '● Available'
-                    : language === 'ur'
-                      ? '● مصروف'
-                      : '● Busy'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 mt-2">
-                <div className="flex items-center gap-1 text-gray-500">
-                  <Briefcase size={11} />
-                  <span className="text-[11px]">{provider.total_jobs} jobs</span>
-                </div>
-                {location && provider.distance != null && (
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <MapPin size={11} />
-                    <span className="text-[11px]">{provider.distance.toFixed(1)} km</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1 text-gray-500">
-                  <MapPin size={11} />
-                  <span className="text-[11px]">
-                    {provider.location_area || provider.location_city}
-                  </span>
-                </div>
-              </div>
-            </div>
+      <section className="px-4 mt-6 md:px-0 md:mt-8">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h2 className="text-base md:text-lg font-bold text-gray-800">
+              {title}
+            </h2>
           </div>
+          {viewAllPath && providersList.length >= 6 && (
+            <button
+              onClick={() => navigate(viewAllPath)}
+              className="text-xs md:text-sm text-blue-700 font-semibold flex items-center gap-0.5 hover:underline"
+            >
+              {t(language, 'viewAll')}
+              <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            </button>
+          )}
         </div>
-
-        <div className="flex border-t border-gray-100">
-          <button
-            onClick={handleView}
-            className="flex-1 py-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
-          >
-            {t(language, 'viewProfile') || 'View Profile'}
-          </button>
-          <div className="w-px bg-gray-100" />
-          <button
-            onClick={handleChat}
-            className="flex items-center justify-center gap-1 flex-1 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <MessageCircle size={13} />
-            {t(language, 'chat') || 'Chat'}
-          </button>
-          <div className="w-px bg-gray-100" />
-          <button className="flex items-center justify-center gap-1 px-3 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-            <Phone size={13} />
-          </button>
-          <div className="w-px bg-gray-100" />
-          <button
-            onClick={handleBook}
-            className="flex-1 py-2.5 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 transition-colors"
-          >
-            {t(language, 'bookNow') || 'Book Now'}
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {providersList.map((provider) => (
+            <ProviderCard
+              key={provider.id}
+              provider={provider}
+              showDistance={!!location}
+            />
+          ))}
         </div>
-      </div>
+      </section>
     );
   };
 
   const renderNearbyCarousel = () => {
     if (loading) {
       return (
-        <section className="px-4 md:px-8 mt-6">
-          <h2 className="mb-3 text-base font-bold text-gray-800">
+        <section className="px-4 mt-6 md:px-0 md:mt-8">
+          <h2 className="mb-3 md:mb-4 text-base md:text-lg font-bold text-gray-800">
             {t(language, 'nearYou')}
           </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 no-scrollbar md:grid md:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="min-w-[260px]">
+              <div key={i} className="min-w-[270px] md:min-w-0 flex-1">
                 <ProviderCardSkeleton />
               </div>
             ))}
@@ -485,94 +322,73 @@ export const HomeScreen: React.FC = () => {
     if (!nearbyProviders.length) return null;
 
     return (
-      <section className="px-4 md:px-8 mt-6">
-        <div className="flex items-center justify-between mb-3">
+      <section className="px-4 mt-6 md:px-0 md:mt-8">
+        <div className="mb-3 md:mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-blue-700" />
-            <h2 className="text-base font-bold text-gray-800">{t(language, 'nearYou')}</h2>
+            <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-700" />
+            <h2 className="text-base md:text-lg font-bold text-gray-800">
+              {t(language, 'nearYou')}
+            </h2>
           </div>
           <button
             onClick={() => navigate('/providers/all?sort=distance')}
-            className="text-xs text-blue-700 font-semibold flex items-center gap-0.5 hover:underline"
+            className="text-xs md:text-sm font-semibold text-blue-700 flex items-center gap-0.5 hover:underline"
           >
-            {t(language, 'viewAll')} <ChevronRight size={14} />
+            {t(language, 'viewAll')}
+            <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
           </button>
         </div>
-
-        {/* Mobile: horizontal scroll / Desktop: grid */}
-        <div className="md:hidden flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-          {nearbyProviders.map((p) => renderInlineProviderCard(p, true))}
+        {/* Mobile: horizontal carousel | Desktop: grid */}
+        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar md:hidden">
+          {nearbyProviders.map((provider) => (
+            <div key={provider.id} className="min-w-[280px] max-w-[280px]">
+              <ProviderCard provider={provider} showDistance compact />
+            </div>
+          ))}
         </div>
         <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {nearbyProviders.map((p) => (
-            <ProviderCard key={p.id} provider={p} showDistance={!!location} />
+          {nearbyProviders.map((provider) => (
+            <ProviderCard
+              key={provider.id}
+              provider={provider}
+              showDistance
+            />
           ))}
         </div>
       </section>
     );
   };
 
-  const renderTopRated = () => {
-    if (loading) {
-      return (
-        <section className="px-4 md:px-8 mt-6">
-          <h2 className="mb-3 text-base font-bold text-gray-800">{t(language, 'topRated')}</h2>
-          <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
-            {[...Array(3)].map((_, i) => <ProviderCardSkeleton key={i} />)}
-          </div>
-        </section>
-      );
-    }
-
-    if (!topRatedProviders.length) return null;
-
+  const renderEmergencySection = () => {
+    if (emergencyCategories.length === 0) return null;
     return (
-      <section className="px-4 md:px-8 mt-6 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Star size={16} className="text-yellow-400 fill-yellow-400" />
-            <h2 className="text-base font-bold text-gray-800">{t(language, 'topRated')}</h2>
-          </div>
-          <button
-            onClick={() => navigate('/providers/all?sort=rating')}
-            className="text-xs text-blue-700 font-semibold flex items-center gap-0.5 hover:underline"
-          >
-            {t(language, 'viewAll')} <ChevronRight size={14} />
-          </button>
+      <section className="px-4 mt-6 md:px-0 md:mt-8">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
+          <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+          <h2 className="text-base md:text-lg font-bold text-gray-800">
+            {language === 'ur' ? 'ہنگامی خدمات' : 'Emergency Services'}
+          </h2>
+          <span className="text-[10px] md:text-xs bg-red-50 text-red-500 font-bold px-2 py-0.5 rounded-full">
+            24/7
+          </span>
         </div>
-        {/* Mobile: stacked cards / Desktop: grid */}
-        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
-          {topRatedProviders.map((p) => renderInlineProviderCard(p))}
-        </div>
-      </section>
-    );
-  };
-
-  const renderAvailableNow = () => {
-    if (loading || !availableProviders.length) return null;
-
-    return (
-      <section className="px-4 md:px-8 mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <h2 className="text-base font-bold text-gray-800">
-              {t(language, 'availableNow')}
-            </h2>
-          </div>
-          <button
-            onClick={() => navigate('/providers/all?available=true')}
-            className="text-xs text-blue-700 font-semibold flex items-center gap-0.5 hover:underline"
-          >
-            {t(language, 'viewAll')} <ChevronRight size={14} />
-          </button>
-        </div>
-        <div className="md:hidden flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-          {availableProviders.map((p) => renderInlineProviderCard(p, true))}
-        </div>
-        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableProviders.map((p) => (
-            <ProviderCard key={p.id} provider={p} showDistance={!!location} />
+        <div className="flex gap-2 md:gap-3 overflow-x-auto no-scrollbar pb-1 md:flex-wrap md:overflow-visible">
+          {emergencyCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => navigate(`/providers/${cat.id}`)}
+              className="flex-shrink-0 bg-white rounded-xl px-4 py-3 flex items-center gap-2 shadow-sm border border-gray-50 hover:border-red-200 hover:bg-red-50 transition-all"
+            >
+              <span className="text-xl md:text-2xl">{cat.icon}</span>
+              <div className="text-left">
+                <p className="text-xs md:text-sm font-semibold text-gray-700">
+                  {language === 'ur' ? cat.name_ur : cat.name_en}
+                </p>
+                <p className="text-[9px] md:text-[10px] text-gray-400">
+                  {language === 'ur' ? 'ابھی دستیاب' : 'Available now'}
+                </p>
+              </div>
+            </button>
           ))}
         </div>
       </section>
@@ -580,7 +396,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const renderEmptyState = () => (
-    <div className="px-4 md:px-8 mt-8">
+    <div className="px-4 md:px-0 mt-6">
       <Card className="text-center py-12">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <MapPin className="w-8 h-8 text-gray-400" />
@@ -598,62 +414,114 @@ export const HomeScreen: React.FC = () => {
     </div>
   );
 
-  // ─── Main Render ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-8">
-      {/* Desktop top nav (hidden on mobile, the hero header serves as nav on mobile) */}
+      {/* Desktop header (preserved) */}
       <div className="hidden md:block">
         <Header />
       </div>
 
-      {/* Mobile hero header (hidden on desktop) */}
-      <div className="md:hidden">
-        {renderHeroHeader()}
-      </div>
-
-      {/* Desktop hero banner strip */}
-      <div className="hidden md:block bg-gradient-to-br from-blue-800 to-indigo-900 px-8 py-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-blue-200 text-sm">
-              {language === 'ur' ? 'خوش آمدید' : 'Welcome back'},{' '}
-              {user?.full_name?.split(' ')[0] || 'there'} 👋
-            </p>
-            <h1 className="text-2xl font-bold text-white mt-0.5">
-              {language === 'ur' ? 'ہائر ون' : 'Hire One'}
-            </h1>
-            {location && (
-              <p className="text-blue-300 text-sm mt-1 flex items-center gap-1">
-                <MapPin size={13} className="fill-yellow-400 text-yellow-400" />
-                {location.area || location.city}
+      {/* Mobile catchy hero header */}
+      <div className="md:hidden bg-gradient-to-br from-blue-800 to-indigo-900 px-4 pt-5 pb-6 rounded-b-3xl shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/15 text-white font-bold flex items-center justify-center border border-white/20">
+              {initials || 'U'}
+            </div>
+            <div>
+              <p className="text-blue-200 text-[11px]">
+                {language === 'ur'
+                  ? `ہیلو، ${userDisplayName} 👋`
+                  : `Hello, ${userDisplayName} 👋`}
               </p>
-            )}
+              <button
+                onClick={detectLocation}
+                className="flex items-center gap-1 text-white"
+              >
+                <MapPin size={12} className="text-amber-300" />
+                <span className="text-sm font-semibold">
+                  {location?.area || location?.city ||
+                    (language === 'ur' ? 'مقام منتخب کریں' : 'Set location')}
+                </span>
+                <ChevronDown size={14} className="text-blue-300" />
+              </button>
+            </div>
           </div>
           <button
-            onClick={() => navigate('/search')}
-            className="bg-white/10 border border-white/20 rounded-xl px-5 py-3 flex items-center gap-3 hover:bg-white/20 transition-colors w-72"
+            onClick={() => navigate('/notifications')}
+            className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center relative"
           >
-            <Search size={18} className="text-blue-200" />
-            <span className="text-sm text-blue-200">
-              {t(language, 'searchPlaceholder') || 'Search for services…'}
-            </span>
+            <Bell size={20} className="text-white" />
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-blue-800" />
           </button>
         </div>
+
+        <button
+          onClick={() => navigate('/search')}
+          className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 flex items-center gap-3"
+        >
+          <Search size={18} className="text-blue-200" />
+          <span className="text-sm text-blue-200">
+            {language === 'ur'
+              ? 'خدمات تلاش کریں...'
+              : 'Search for services...'}
+          </span>
+        </button>
       </div>
 
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-7xl mx-auto md:px-4 md:py-6">
+        {/* Desktop welcome */}
+        <section className="hidden md:block mb-6 px-4 md:px-0">
+          <p className="text-sm text-gray-500">
+            {language === 'ur' ? 'خوش آمدید' : 'Welcome back'}
+          </p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {user?.full_name || (language === 'ur' ? 'ہائر ون' : 'Hire One')}
+          </h1>
+          {location ? (
+            <p className="mt-1 text-sm text-gray-600 flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              {location.area || location.city}
+            </p>
+          ) : null}
+        </section>
+
         {/* Promo Banner */}
-        {renderBanner()}
+        <div className="px-4 mt-4 md:px-0 md:mt-0 md:mb-6">
+          <div
+            className={`bg-gradient-to-r ${BANNERS[currentBanner].color} rounded-2xl p-5 md:p-8 relative overflow-hidden shadow-md`}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 md:w-48 md:h-48 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
+            <div className="absolute bottom-0 right-10 w-20 h-20 md:w-32 md:h-32 bg-white/5 rounded-full translate-y-6" />
+            <h3 className="text-white font-bold text-lg md:text-2xl z-10 relative">
+              {BANNERS[currentBanner].title}
+            </h3>
+            <p className="text-white/80 text-sm md:text-base mt-1 z-10 relative">
+              {BANNERS[currentBanner].subtitle}
+            </p>
+            <div className="flex gap-1.5 mt-3 z-10 relative">
+              {BANNERS.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === currentBanner ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Location Warning */}
         {permissionDenied && (
-          <div className="px-4 md:px-8 mt-4">
+          <div className="px-4 md:px-0 mt-4">
             <Card className="bg-yellow-50 border-yellow-200">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm text-yellow-800">
-                    {t(language, 'locationError')}. {t(language, 'searchLocation')}
+                    {t(language, 'locationError')}.{' '}
+                    {t(language, 'searchLocation')}
                   </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={detectLocation}>
@@ -665,13 +533,37 @@ export const HomeScreen: React.FC = () => {
           </div>
         )}
 
+        {/* Categories */}
+        <section className="px-4 mt-6 md:px-0 md:mt-8">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h2 className="text-base md:text-lg font-bold text-gray-800">
+              {t(language, 'categories')}
+            </h2>
+            <button
+              onClick={() => navigate('/categories')}
+              className="text-xs md:text-sm text-blue-700 font-semibold flex items-center gap-0.5 hover:underline"
+            >
+              {t(language, 'viewAll')}
+              <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            </button>
+          </div>
+          {renderCategoryGrid()}
+        </section>
+
+        {/* Emergency Services */}
+        {renderEmergencySection()}
+
         {/* Error State */}
         {error && (
-          <div className="px-4 md:px-8 mt-4">
+          <div className="px-4 md:px-0 mt-4">
             <Card className="bg-red-50 border-red-200">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-red-800">{error}</p>
-                <Button size="sm" variant="outline" onClick={() => fetchProviders(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fetchProviders(true)}
+                >
                   {t(language, 'retry')}
                 </Button>
               </div>
@@ -679,32 +571,25 @@ export const HomeScreen: React.FC = () => {
           </div>
         )}
 
-        {/* Categories */}
-        <section className="px-4 md:px-8 mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-800">
-              {t(language, 'categories') || 'All Services'}
-            </h2>
-            {sortedCategories.length > 8 && !showAllCategories && (
-              <button
-                onClick={() => navigate('/categories')}
-                className="text-xs text-blue-700 font-semibold flex items-center gap-0.5"
-              >
-                {t(language, 'viewAll') || 'View All'} <ChevronRight size={14} />
-              </button>
-            )}
-          </div>
-          {renderCategoryGrid()}
-        </section>
-
-        {/* Provider Sections */}
+        {/* Providers Sections */}
         {!loading && providers.length === 0 ? (
           renderEmptyState()
         ) : (
           <>
             {renderNearbyCarousel()}
-            {renderAvailableNow()}
-            {renderTopRated()}
+
+            {renderProviderSection(
+              t(language, 'topRated'),
+              topRatedProviders,
+              '/providers/all?sort=rating',
+              <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-400 fill-amber-400" />
+            )}
+
+            {renderProviderSection(
+              t(language, 'availableNow'),
+              availableProviders,
+              '/providers/all?available=true'
+            )}
           </>
         )}
       </main>
