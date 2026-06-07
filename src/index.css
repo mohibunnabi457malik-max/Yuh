@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Prevent horizontal scroll / zoom on mobile — the only addition */
+html, body, #root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Custom styles */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
