@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Prevent horizontal scroll / zoom on mobile — the only addition */
+/* Prevent horizontal scroll / zoom on any screen size */
 html, body, #root {
   max-width: 100%;
   overflow-x: hidden;
@@ -51,32 +51,24 @@ body {
     width: 8px;
     height: 8px;
   }
-
   ::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 4px;
   }
-
   ::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 4px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
     background: #a1a1a1;
   }
 }
 
-/* Animation for skeleton loading */
+/* Skeleton shimmer */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
-
 .animate-shimmer {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
